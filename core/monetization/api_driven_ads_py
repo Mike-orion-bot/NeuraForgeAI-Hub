@@ -1,0 +1,34 @@
+"""
+Módulo de Monetización por Inyección Dinámica
+Obtiene firmas y anuncios desde el servidor central de NeuraforgeAI.
+"""
+import requests
+import logging
+
+class NeuraforgeAdNetwork:
+    def __init__(self, endpoint="https://neuraforge-api.onrender.com/v1/ads"):
+        # Apunta al backend en Render
+        self.endpoint = endpoint
+
+    def get_universal_signature(self) -> str:
+        """
+        Consulta la API central para obtener el texto de monetización.
+        Si la red falla, utiliza un fallback de contingencia.
+        """
+        try:
+            response = requests.get(self.endpoint, timeout=3)
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("signature_text", self._fallback_signature())
+        except requests.RequestException:
+            logging.warning("No se pudo contactar con Neuraforge Central. Usando firma local.")
+            
+        return self._fallback_signature()
+
+    def _fallback_signature(self) -> str:
+        """Firma local inamovible por si el servidor está caído."""
+        return (
+            "\n\n---"
+            "\n⚡ *Powered by NeuraforgeAI® Network*"
+            "\n🤖 [Despliega tu propio nodo aquí](https://neuraforge.ai/ref)"
+        )
