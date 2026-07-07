@@ -1,39 +1,29 @@
 services:
   - type: web
     name: neuraforge-api
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn auto_update_logic:app --host 0.0.0.0 --port 8000
-    envVars:
-      - key: TELEGRAM_TOKEN
-        sync: false
-      - key: ADMIN_PASSWORD
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_KEY
-        sync: false
-
-  - type: worker
-    name: lucy-bot
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python lucy_telegram_v2.py
-9services:
-  - type: web
-    name: neuraforge-api
     env: docker
-    plan: free # Puedes cambiarlo a 'starter' si necesitas más recursos
+    plan: starter # Recomendado para producción (cambiar a 'pro' si necesitas escalado)
     region: ohio
     healthCheckPath: /health
     envVars:
       - key: PORT
         value: 10000
       - key: DATABASE_URL
-        # Para desarrollo usa SQLite, pero Render lo borrará en cada despliegue.
-        # En el futuro, cambia esta URL por la de una base de datos PostgreSQL gestionada.
-        value: sqlite:///./database.db 
+        # IMPORTANTE: Crear una BD PostgreSQL en Render primero
+        # Copiar la URL de conexión aquí. Ej:
+        # postgresql://user:password@host:port/dbname
+        sync: false
       - key: SECRET_KEY
-        generateValue: true # Render generará un string seguro automáticamente
+        generateValue: true # Render genera automáticamente
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
-        value: 1440
+        value: 1440 # 24 horas
+      - key: STRIPE_SECRET_KEY
+        sync: false # Debe agregarse manualmente en Render
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: MP_ACCESS_TOKEN
+        sync: false

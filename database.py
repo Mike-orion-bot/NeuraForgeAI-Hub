@@ -1,17 +1,48 @@
 import os
-from sqlalchemy import create_engine
+import logging
+from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Obtener la URL de la base de datos de las variables de entorno.
-# Por defecto usa SQLite local, pero Render o Docker pueden inyectar una base de datos PostgreSQL
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./database.db")
+logger = logging.getLogger(__name__)
 
-# Si usa SQLite, necesitamos configurar 'check_same_thread' a False
+# Obtener la URL de la base de datos de las variables de entorno.
+# Para producción en Render, debe ser PostgreSQL
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", 
+    "sqlite:///./database.db"  # Solo para desarrollo local
+)
+
+# Configurar el motor de base de datos
 if DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+    # SQLite solo para desarrollo
+    logger.info("📦 Usando SQLite (desarrollo)")
+    engine = create_engine(
+        DATABASE_URL, 
+        connect_args={"check_same_thread": False}
+    )
 else:
-    engine = create_engine(DATABASE_URL)
+    # PostgreSQL para producción
+    logger.info("🗄️ Usando PostgreSQL (producción)")
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,  # Verifica conexión antes de usarla
+        pool_recycle=3600,   # Recicla conexiones cada 1 hora
+        pool_size=10,        # Tamaño del pool de conexiones
+        max_overflow=20,     # Máximo de conexiones extra
+        echo=False
+    )
+
+# Event listener para mantener conexiones PostgreSQL activas
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_conn, connection_record):
+    """Configura pragmas para SQLite si es necesario."""
+    if isinstance(dbapi_conn, type(None)):
+        return
+    if "sqlite" in str(dbapi_conn):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

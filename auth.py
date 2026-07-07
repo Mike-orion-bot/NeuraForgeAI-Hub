@@ -1,15 +1,16 @@
 import os
 from datetime import datetime, timedelta
-from typing import Optional, Union
-from jose import JWTError, jwt  # Jose or PyJWT. In requirements.txt we added pyjwt, let's use jwt
-# Wait, PyJWT is imported as 'import jwt'. Let's use 'import jwt' for simplicity and robust compatibility.
+from typing import Optional
 import jwt
 from passlib.context import CryptContext
 
-# Configuración de variables de entorno con valores por defecto seguros para desarrollo
-SECRET_KEY = os.getenv("SECRET_KEY", "b33f_s3cr3t_k3y_for_affiliates_and_monetization_123456789")
+# Configuración de variables de entorno
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("❌ ERROR: SECRET_KEY no está configurada. Configúrala en variables de entorno.")
+
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")) # 24 horas por defecto
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 horas por defecto
 
 # Configuración para encriptar contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -39,5 +40,5 @@ def decode_access_token(token: str) -> Optional[dict]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except jwt.PyJWTError:
+    except jwt.InvalidTokenError:
         return None
