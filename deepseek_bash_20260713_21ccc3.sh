@@ -1,0 +1,1 @@
+nano ~/NeuraforgeAI/main.py
